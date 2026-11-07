@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Mafiya: Tun tushdi, shahar uxlaydi</title>
+  
+  <!-- PWA & Mobile Meta -->
+  <meta name="theme-color" content="#0c0e1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/static/manifest.json">
+
+  <!-- Tabler Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.42.0/dist/tabler-icons.min.css">
+  
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<div id="app-container">
+  
+  <!-- Yuqori qism (Header) -->
+  <div class="header-bar" id="main-header" style="display: none;">
+    <div class="tag" id="room-code-tag">
+      <i class="ti ti-hash"></i> <span id="header-room-code">------</span>
+    </div>
+    <div class="header-icons">
+      <button class="icon-btn" id="btn-sound-toggle" title="Ovoz">
+        <i class="ti ti-volume"></i>
+      </button>
+      <button class="icon-btn" id="btn-show-rules" title="Qoidalar">
+        <i class="ti ti-book"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- 1. BOSH SAHIFA (HOME) -->
+  <div class="screen active" id="screen-home">
+    <div class="game-card">
+      <div class="logo-wrapper" id="home-logo-container"></div>
+      <div class="logo-title">MAFIYA</div>
+      <p class="caption">Tun tushdi. Shahar uxlaydi.</p>
+
+      <div class="input-group" style="margin-top: 8px;">
+        <input type="text" id="input-player-name" class="input-field" placeholder="Ismingizni kiriting..." maxlength="15">
+      </div>
+
+      <button class="btn btn-red" id="btn-create-room">
+        <i class="ti ti-plus"></i> Yangi xona yaratish
+      </button>
+
+      <button class="btn btn-outline" id="btn-open-join">
+        <i class="ti ti-key"></i> Kod bilan kirish
+      </button>
+
+      <button class="btn btn-outline" style="border: none; color: var(--text-muted); font-size: 13px;" id="btn-home-rules">
+        <i class="ti ti-book"></i> O'yin qoidalari
+      </button>
+    </div>
+  </div>
+
+  <!-- 2. KUTILISH XONASI (LOBBY) -->
+  <div class="screen" id="screen-lobby">
+    <div class="game-card">
+      <div style="font-size: 13px; color: var(--text-muted);">Xona kodi (do'stlaringizga yuboring):</div>
+      <div style="font-size: 32px; font-weight: 800; letter-spacing: 4px; color: var(--accent-gold);" id="lobby-room-code">
+        ------
+      </div>
+      <button class="btn btn-outline" style="padding: 8px 14px; font-size: 13px; width: auto;" id="btn-copy-link">
+        <i class="ti ti-copy"></i> Havolani nusxalash
+      </button>
+
+      <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+        <span style="font-size: 14px; font-weight: 600;">O'yinchilar (<span id="lobby-count">1</span>/<span id="lobby-max">10</span>)</span>
+        <button class="btn btn-outline" style="width: auto; padding: 6px 12px; font-size: 12px;" id="btn-open-settings">
+          <i class="ti ti-settings"></i> Sozlamalar
+        </button>
+      </div>
+
+      <div class="players-grid" id="lobby-players-grid"></div>
+
+      <button class="btn btn-outline" id="btn-add-bot" style="margin-top: 4px;">
+        <i class="ti ti-robot"></i> Bot qo'shish (Test uchun)
+      </button>
+
+      <button class="btn btn-gold" id="btn-start-game" style="margin-top: 8px; display: none;">
+        <i class="ti ti-player-play"></i> O'yinni boshlash
+      </button>
+      <p class="caption" id="lobby-wait-msg">Host o'yinni boshlashini kuting...</p>
+    </div>
+  </div>
+
+  <!-- 3. ROL OCHILISHI (ROLE REVEAL) -->
+  <div class="screen" id="screen-role-reveal">
+    <div class="game-card">
+      <div class="timer-container">
+        <i class="ti ti-clock"></i> Tun tushishiga: <span id="reveal-timer">5</span>s
+      </div>
+      <p class="caption">Sizning maxfiy rolingiz:</p>
+      
+      <div class="card-flipper-container">
+        <div class="card-flipper flipped" id="reveal-flipper">
+          <div class="card-front" id="reveal-card-front">
+            <!-- Dinamik rol kartochkasi -->
+          </div>
+          <div class="card-back">
+            <i class="ti ti-mask" style="font-size: 64px; color: var(--accent-purple);"></i>
+            <div style="font-size: 18px; font-weight: 700; margin-top: 12px;">MAFIYA</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="reveal-teammates" style="width: 100%; display: none;">
+        <div style="font-size: 12px; color: var(--accent-red); margin-bottom: 4px;">Mafiya jamoadoshlaringiz:</div>
+        <div id="reveal-teammates-list" style="font-size: 13px; font-weight: 600;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. TUN BOSQICHI (NIGHT) -->
+  <div class="screen" id="screen-night">
+    <div class="game-card" style="background: #090b17; border-color: #1e2242;">
+      <div class="timer-container timer-pulse">
+        <i class="ti ti-moon"></i> Tun, <span id="night-day-num">1</span>-kecha (<span id="night-timer">30</span>s)
+      </div>
+
+      <div id="night-action-header">
+        <div style="font-size: 18px; font-weight: 700;" id="night-role-title">Tun harakati</div>
+        <p class="caption" id="night-instruction">Shahar uxlamoqda...</p>
+      </div>
+
+      <div class="target-list" id="night-target-list"></div>
+
+      <button class="btn btn-red" id="btn-confirm-night-action" style="display: none;">
+        Tanlovni tasdiqlash
+      </button>
+    </div>
+
+    <!-- Mafiya maxfiy chati (faqat mafiyaga ko'rinadi) -->
+    <div class="chat-container" id="night-mafia-chat" style="display: none;">
+      <div style="font-size: 12px; color: var(--accent-red); font-weight: 700; display: flex; align-items: center; gap: 6px;">
+        <i class="ti ti-messages"></i> Mafiya maxfiy chati
+      </div>
+      <div class="chat-messages" id="night-chat-messages"></div>
+      <div class="chat-input-bar">
+        <input type="text" class="chat-input" id="night-chat-input" placeholder="Mafiyaga yozish...">
+        <button class="chat-send-btn" id="btn-send-night-chat"><i class="ti ti-send"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. TUN NATIJASI (NIGHT RESULT) -->
+  <div class="screen" id="screen-night-result">
+    <div class="game-card" id="night-result-card">
+      <div id="night-result-banner"></div>
+      <div class="timer-container" style="margin-top: 8px;">
+        <i class="ti ti-sun"></i> Tong otdi: <span id="result-timer">7</span>s
+      </div>
+      <div style="font-size: 20px; font-weight: 700; margin-top: 6px;" id="night-result-title"></div>
+      <p class="caption" id="night-result-desc" style="font-size: 14px; line-height: 1.5;"></p>
+
+      <!-- Komissar maxfiy tekshiruvi xabari -->
+      <div id="commissioner-report-box" style="display: none; width: 100%; margin-top: 10px;"></div>
+    </div>
+  </div>
+
+  <!-- 6. KUNDUZGI MUHOKAMA (DAY DISCUSSION) -->
+  <div class="screen" id="screen-day">
+    <div class="game-card">
+      <div class="timer-container">
+        <i class="ti ti-sun"></i> Muhokama: <span id="day-timer">60</span>s
+      </div>
+      <div style="font-size: 16px; font-weight: 600;">Shahar aholisi yig'ilishi</div>
+      <p class="caption">Shubhalaringizni bildiring va mafiyani toping!</p>
+
+      <div class="players-grid" id="day-players-grid"></div>
+    </div>
+
+    <!-- Umumiy shahar chati -->
+    <div class="chat-container">
+      <div style="font-size: 12px; color: var(--accent-gold); font-weight: 700; display: flex; align-items: center; gap: 6px;">
+        <i class="ti ti-message-circle"></i> Shahar muhokamasi
+      </div>
+      <div class="chat-messages" id="day-chat-messages"></div>
+      <div class="chat-input-bar">
+        <input type="text" class="chat-input" id="day-chat-input" placeholder="Fikringizni yozing...">
+        <button class="chat-send-btn" id="btn-send-day-chat"><i class="ti ti-send"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. OVOZ BERISH (VOTING) -->
+  <div class="screen" id="screen-voting">
+    <div class="game-card">
+      <div class="timer-container timer-pulse">
+        <i class="ti ti-gavel"></i> Ovoz berish: <span id="voting-timer">30</span>s
+      </div>
+      <div style="font-size: 16px; font-weight: 700;">Kimni osamiz?</div>
+      <p class="caption">Eng ko'p ovoz olgan o'yinchi shahardan chetlatiladi.</p>
+
+      <div class="target-list" id="voting-target-list"></div>
+
+      <button class="btn btn-purple" id="btn-skip-vote" style="margin-top: 6px;">
+        Hech kimga ovoz bermaslik
+      </button>
+    </div>
+  </div>
+
+  <!-- 8. OVOZ BERISH NATIJASI (VOTE RESULT) -->
+  <div class="screen" id="screen-vote-result">
+    <div class="game-card" id="vote-result-card">
+      <div style="font-size: 13px; color: var(--text-muted);">Ovoz berish natijasi</div>
+      <div style="font-size: 20px; font-weight: 700;" id="vote-result-headline"></div>
+      
+      <div id="vote-result-graphic"></div>
+      
+      <div style="font-size: 16px; font-weight: 600; margin-top: 6px;" id="vote-result-revealed-role"></div>
+      <p class="caption" id="vote-result-details"></p>
+
+      <div class="timer-container" style="margin-top: 10px;">
+        Keyingi bosqichga: <span id="vote-res-timer">6</span>s
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. O'YIN TUGADI (GAME OVER) -->
+  <div class="screen" id="screen-game-over">
+    <div class="game-card" id="game-over-card">
+      <i class="ti ti-trophy" style="font-size: 56px; color: var(--accent-gold); margin-top: 4px;"></i>
+      <div style="font-size: 24px; font-weight: 800;" id="game-over-winner-title">G'ALABA!</div>
+      <p class="caption" id="game-over-winner-desc"></p>
+
+      <div style="width: 100%; text-align: left; margin-top: 8px;">
+        <div style="font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">Barcha o'yinchilar rollari:</div>
+        <div id="game-over-roster" style="display: flex; flex-direction: column; gap: 6px;"></div>
+      </div>
+
+      <div style="display: flex; gap: 10px; width: 100%; margin-top: 12px;">
+        <button class="btn btn-gold" id="btn-play-again" style="flex: 1;">
+          <i class="ti ti-refresh"></i> Qayta o'ynash
+        </button>
+        <button class="btn btn-outline" id="btn-leave-room" style="flex: 1;">
+          <i class="ti ti-door-exit"></i> Chiqish
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL: KOD BILAN KIRISH -->
+<div class="modal-overlay" id="modal-join">
+  <div class="modal-box">
+    <div style="font-size: 18px; font-weight: 700; display: flex; justify-content: space-between; align-items: center;">
+      <span>Xonaga ulanish</span>
+      <i class="ti ti-x" style="cursor: pointer;" id="btn-close-join"></i>
+    </div>
+    <div class="input-group">
+      <span class="input-label">6 xonali kod</span>
+      <input type="text" id="input-join-code" class="input-field" placeholder="Masalan: AB12CD" style="text-transform: uppercase;" maxlength="6">
+    </div>
+    <button class="btn btn-blue" id="btn-submit-join">
+      <i class="ti ti-login"></i> Kirish
+    </button>
+  </div>
+</div>
+
+<!-- MODAL: XONA SOZLAMALARI -->
+<div class="modal-overlay" id="modal-settings">
+  <div class="modal-box">
+    <div style="font-size: 18px; font-weight: 700; display: flex; justify-content: space-between; align-items: center;">
+      <span><i class="ti ti-settings" style="color: var(--accent-purple);"></i> Xona sozlamalari</span>
+      <i class="ti ti-x" style="cursor: pointer;" id="btn-close-settings"></i>
+    </div>
+
+    <div class="setting-row">
+      <span>O'yinchilar soni</span>
+      <div class="stepper">
+        <button class="stepper-btn" id="btn-dec-players">-</button>
+        <span id="st-max-players" style="font-weight: 700;">10</span>
+        <button class="stepper-btn" id="btn-inc-players">+</button>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <span>Mafiya soni</span>
+      <div class="stepper">
+        <button class="stepper-btn" id="btn-dec-mafia">-</button>
+        <span id="st-mafia-count" style="font-weight: 700;">2</span>
+        <button class="stepper-btn" id="btn-inc-mafia">+</button>
+      </div>
+    </div>
+
+    <div style="font-size: 12px; color: var(--text-muted); text-align: left; margin-top: 4px;">Maxsus rollar</div>
+
+    <div class="setting-row">
+      <span>Komissar (Sherif)</span>
+      <div class="toggle-switch active" id="toggle-commissioner"><i></i></div>
+    </div>
+
+    <div class="setting-row">
+      <span>Shifokor</span>
+      <div class="toggle-switch active" id="toggle-doctor"><i></i></div>
+    </div>
+
+    <div class="setting-row">
+      <span>Don (Mafiya boshlig'i)</span>
+      <div class="toggle-switch" id="toggle-don"><i></i></div>
+    </div>
+
+    <div class="setting-row">
+      <span>Manyak (Yolg'iz qotil)</span>
+      <div class="toggle-switch" id="toggle-maniac"><i></i></div>
+    </div>
+
+    <div class="setting-row">
+      <span>Sevgilisi (Putana)</span>
+      <div class="toggle-switch" id="toggle-lover"><i></i></div>
+    </div>
+
+    <div class="setting-row">
+      <span>Advokat</span>
+      <div class="toggle-switch" id="toggle-lawyer"><i></i></div>
+    </div>
+
+    <button class="btn btn-purple" id="btn-save-settings" style="margin-top: 8px;">
+      Saqlash
+    </button>
+  </div>
+</div>
+
+<!-- MODAL: QOIDALAR -->
+<div class="modal-overlay" id="modal-rules">
+  <div class="modal-box">
+    <div style="font-size: 18px; font-weight: 700; display: flex; justify-content: space-between; align-items: center;">
+      <span><i class="ti ti-book" style="color: var(--accent-gold);"></i> O'yin qoidalari</span>
+      <i class="ti ti-x" style="cursor: pointer;" id="btn-close-rules"></i>
+    </div>
+    
+    <div style="font-size: 13px; line-height: 1.5; color: var(--text-main); text-align: left; display: flex; flex-direction: column; gap: 8px;">
+      <p><b>O'yin maqsadi:</b> Tinch aholi barcha mafiyalarni topib osishi kerak. Mafiya esa tinch aholi bilan tenglashishi yoki ko'pchilik bo'lishi kerak.</p>
+      
+      <div style="font-size: 13px; font-weight: 700; color: var(--accent-gold); margin-top: 4px;">Rollar:</div>
+      <div>🔴 <b>Mafiya:</b> Tunda kelishib bitta nishonni o'ldiradi.</div>
+      <div>⭐ <b>Don:</b> Mafiya sardori. Komissar tekshirganda toza ko'rinadi.</div>
+      <div>🔵 <b>Komissar:</b> Har tunda bitta o'yinchini tekshiradi: mafiyami yoki yo'q.</div>
+      <div>🟢 <b>Shifokor:</b> Har tunda bitta odamni davolaydi va o'limdan saqlaydi.</div>
+      <div>🟣 <b>Manyak:</b> Yolg'iz jamoa. Tunda o'ldiradi, hammadan ko'p qolishni xohlaydi.</div>
+      <div>💖 <b>Sevgilisi:</b> Tunda bir o'yinchini to'sib qo'yadi (harakat qila olmaydi).</div>
+      <div>⚪ <b>Advokat:</b> Mafiyani tekshiruvdan himoya qiladi.</div>
+      <div>🟡 <b>Tinch aholi:</b> Kunduzi muhokama qiladi va ovoz berish orqali gumonlanuvchini osadi.</div>
+    </div>
+
+    <button class="btn btn-outline" id="btn-rules-ok">Tushundim</button>
+  </div>
+</div>
+
+<!-- Skriptlar -->
+<script src="/static/js/svgs.js"></script>
+<script src="/static/js/audio.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>
